@@ -26,7 +26,7 @@ template Matrix<double> AdamarsMultiplication (Matrix<double> & , Matrix<double>
 
 
 template <typename T>
-Matrix<T> transp (Matrix<T> & matrix){
+Matrix<T> transp (Matrix<T> matrix){
    Matrix<T> resultMatrix = Matrix<T> (matrix.GetLenght(), matrix.GetHeight());
     for (int i = 0; i < matrix.GetHeight(); ++ i){
         for (int j = 0; j < matrix.GetLenght(); ++ j){
@@ -36,8 +36,8 @@ Matrix<T> transp (Matrix<T> & matrix){
    return resultMatrix;
 }
 
-template Matrix<int> transp (Matrix<int> &);
-template Matrix<double> transp (Matrix<double> &);
+template Matrix<int> transp (Matrix<int> );
+template Matrix<double> transp (Matrix<double> );
 
 
 template <typename T>
@@ -266,7 +266,7 @@ template double trace( Matrix<double>);
 
 template<typename T>
 T ScalarMultiplication(Matrix<T> vector1, Matrix<T> vector2){
-    T result = 0;
+    double result = 0;
     int n1=vector1.GetHeight();
     int n2=vector2.GetHeight();
     int m1=vector1.GetLenght();
@@ -305,3 +305,151 @@ template double AngleBetweenVectors( Matrix<int>,Matrix<int>);
 template double AngleBetweenVectors( Matrix<double>,Matrix<double>);
 
 
+template <typename T>
+Matrix<T> reverse (Matrix<T> matrix){
+    double det = matrix.det();
+    if (det == 0){
+        std::string errorStr="Determinant equals to zero. Matrix cannot be reversed\n";
+        std::cerr<<errorStr;
+        insertIntoFuncLogFile( matrix, FileLogger<T>::e_logType::LOG_ERROR,__LINE__, __func__,errorStr );
+    }
+    int n=matrix.GetHeight();
+    int m= matrix.GetHeight();
+    Matrix<T> big_matrix(n, m * 2);
+
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            big_matrix[i] [j] = matrix[i] [j];
+        }
+    };
+
+    for (int i = 0; i < m; ++i) {
+        big_matrix[i] [m + i] = 1;
+    }
+
+
+    int swapsCount = 0;
+    for (int i = 0; i < m && swapsCount < n; ++i) {
+        double max = big_matrix[swapsCount][ i];
+        int maxIndex = swapsCount;
+
+        for (int row = swapsCount + 1; row < n; ++row) {
+            if ((big_matrix[row][i] != 0) && ((max == 0) || (big_matrix[row][i] > max))) {
+                max = big_matrix[row][i];
+                maxIndex = row;
+            }
+        }
+
+        if (max == 0) continue;
+
+        big_matrix.swapRows(maxIndex, swapsCount++);
+
+        for (int j = swapsCount; j < n; ++j) {
+            double q = big_matrix[j][i] / big_matrix[swapsCount - 1][i];
+            for (int k = 0; k < m * 2; ++k) {
+                big_matrix[j][k] -= big_matrix[swapsCount - 1][k] * q;
+                if (fabs(big_matrix[j][k]) < 0.00000001) big_matrix[j][k] = 0;
+            }
+        }
+    }
+
+    for (int i = 0; i < n; ++i) {
+        double general = big_matrix[i][i];
+        for (int j = i; j < m * 2; ++j) {
+            big_matrix[i][j] /= general;
+        }
+
+        for (int j = i; j > 0; --j) {
+            double q = big_matrix[j - 1][i];
+            for (int k = i; k < m * 2; ++k) {
+                big_matrix[j - 1][k] -= q * big_matrix[i][k];
+                if (fabs(big_matrix[j - 1][k]) < 0.00000001) big_matrix[j - 1][k] = 0;
+            }
+        }
+    }
+
+    Matrix<T> result(n, m);
+
+    for (int i = 0; i < n; ++i) {
+        for (int j = m; j < m * 2; ++j) {
+            result[i][j - m] = big_matrix[i][j];
+        }
+    }
+
+    return result;
+}
+template Matrix<int> reverse (Matrix<int> );
+template Matrix<double> reverse (Matrix<double> );
+
+
+
+template <typename T>
+Matrix<T>inverse(Matrix<T> matrix){
+    int n=matrix.GetHeight();
+    int m=matrix.GetLenght();
+    double temp;
+    if(n!=m){
+        std::string errorStr="Not squared matrix, can't find its inverse";
+        std::cerr<<errorStr;
+        insertIntoFuncLogFile( matrix, FileLogger<T>::e_logType::LOG_ERROR,__LINE__, __func__,errorStr );
+    }
+    Matrix<T> result(n,n);
+    std::vector<std::vector<T>>copy(n, std::vector <T> (m));
+    for(int i=0;i<n;i++){
+        for(int j=0;j<n;j++){
+            copy[i][j]=(matrix[i][j]);
+        }
+    }
+    Matrix<T> tmp(n,n, copy);
+
+    for (int i = 0; i < n; i++){
+            for (int j = 0; j <n; j++){
+                result[i][j] = 0.0;
+                if (i == j)
+                    result[i][j] = 1.0;
+            }
+    }
+
+    for (int k = 0; k < n; k++){
+        temp = tmp[k][k];
+        for (int j = 0; j < n; j++){
+            tmp[k][j] /= temp;
+            result[k][j] /= temp;
+        }
+        for (int i = k + 1; i < n; i++){
+            temp = tmp[i][k];
+            for (int j = 0; j < n; j++){
+                tmp[i][j] -= tmp[k][j] * temp;
+                result[i][j] -= result[k][j] * temp;
+            }
+        }
+    }
+
+    for (int k = n - 1; k > 0; k--){
+        for (int i = k - 1; i >= 0; i--){
+            temp = tmp[i][k];
+            for (int j = 0; j < n; j++){
+                tmp[i][j] -= tmp[k][j] * temp;
+                result[i][j] -= result[k][j] * temp;
+            }
+        }
+    }
+
+    for (int i = 0; i < n; i++){
+        for (int j = 0; j <n; j++){
+            tmp[i][j] = result[i][j];
+        }
+    }
+//    for (int i = 0; i < n; i++){
+//        for (int j = 0; j <n; j++){
+//            if(abs(result[i][j])<0.1){
+//                result[i][j]=0;
+//            }
+//
+//        }
+//    }
+    
+    return result;
+}
+template Matrix<int> inverse (Matrix<int> );
+template Matrix<double> inverse (Matrix<double> );

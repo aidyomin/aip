@@ -8,6 +8,7 @@
 #include <cmath>
 #include "LoggerAndExeption.h"
 #include <cassert>
+#include <algorithm>
 //template<typename T>
 //class FileLogger;
 enum class Mode {
@@ -23,7 +24,10 @@ template <typename T>
 Matrix<T> AdamarsMultiplication (Matrix<T> & , Matrix<T> & );
 
 template <typename T>
-Matrix<T> transp (Matrix<T> & );
+Matrix<T> transp (Matrix<T> );
+
+template <typename T>
+Matrix<T> reverse (Matrix<T> );
 
 template <typename T>
 Matrix<T> concateMatrix (Matrix<T> & , Matrix<T> & );
@@ -39,6 +43,9 @@ Matrix<T> eraseColumns (Matrix<T> ,int index1, int index2);
 
 template <class T>
 Matrix<T> eraseRows (Matrix<T>, int index1, int index2);
+
+template <class T>
+Matrix<T>inverse(Matrix<T> matrix);
 
 template <class T>
 T det (Matrix<T>);
@@ -60,10 +67,11 @@ double AngleBetweenVectors( Matrix<T>,Matrix<T>);
 template<typename T> std::ostream& operator<< (std::ostream& out, const Matrix<T> &matrix);
 template<typename T>  std::ofstream& operator<<(std::ofstream& out, Matrix<T> const & matrix);
 template<typename T> std::istream& operator>>(std::istream& in, Matrix<T>& matrix);
-template<typename T> Matrix<T> operator + (Matrix<T>& matrix1, Matrix<T>& matrix2);
-template<typename T> Matrix<T> operator - (Matrix<T>& matrix1, Matrix<T>& matrix2);
-template<typename T> Matrix<T> operator * (Matrix<T>& matrix1, Matrix<T>& matrix2);
-template<typename T> Matrix<T> operator * (Matrix<T>& matrix1, T number);
+template<typename T> Matrix<T> operator + (Matrix<T> matrix1, Matrix<T> matrix2);
+template<typename T> Matrix<T> operator - (Matrix<T> matrix1, Matrix<T> matrix2);
+template<typename T> Matrix<T> operator * (Matrix<T> matrix1, Matrix<T> matrix2);
+template<typename T> Matrix<T> operator * (Matrix<T> matrix1, double number);
+template<typename T> Matrix<T> operator / (Matrix<T> matrix1, double number);
 //template<typename T> std::ofstream& operator>>(std::ofstream& in, Matrix<T>& matrix);
 
 using  std::swap;
@@ -226,10 +234,11 @@ public:
     friend std::ostream& operator<<<>(std::ostream& out, const Matrix<T> &matrix);
     friend std::ofstream& operator<<<>(std::ofstream& out, Matrix<T> const& matrix);
     friend std::istream& operator>><>(std::istream& in, Matrix<T>& matrix);
-    friend Matrix<T> operator + <>(Matrix<T>& matrix1, Matrix<T>& matrix2);
-    friend Matrix<T> operator - <>(Matrix<T>& matrix1, Matrix<T>& matrix2);
-    friend Matrix<T> operator * <>(Matrix<T>& matrix1, Matrix<T>& matrix2);
-    friend Matrix<T> operator * <>(Matrix<T>& matrix1, T number);
+    friend Matrix<T> operator + <>(Matrix<T> matrix1, Matrix<T> matrix2);
+    friend Matrix<T> operator - <>(Matrix<T> matrix1, Matrix<T> matrix2);
+    friend Matrix<T> operator * <>(Matrix<T> matrix1, Matrix<T> matrix2);
+    friend Matrix<T> operator * <>(Matrix<T> matrix1, double number);
+    friend Matrix<T> operator / <>(Matrix<T> matrix1, double number);
     
 //    friend std::ofstream& operator>><>(std::ofstream& in, Matrix<T>& matrix);
 //    friend std::ostream& operator<< (std::ostream &out, const Matrix &matrix);
@@ -255,6 +264,27 @@ public:
         }
         return array[index];
     }
+//    std::vector<T> operator [] (int index){
+//        if(index<0||index>=n){
+//            std::string errorStr="Index of row you want to get is out of range\n";
+//            std::cerr<<errorStr;
+//
+//            insertIntoFuncLogFile<T>(*this, FileLogger<T>::e_logType::LOG_ERROR, __LINE__, __func__, errorStr);
+//
+//        }
+//        else{
+//            if(n!=0){
+//                return array[index];
+//            }
+//            else{
+//                std::string errorStr="Matrix is empty!!!\nEnd of program\n";
+//                std::cerr<<errorStr;
+//                insertIntoFuncLogFile( *this, FileLogger<T>::e_logType::LOG_ERROR,__LINE__, __func__,errorStr );
+//                exit(EXIT_FAILURE);
+//            }
+//        }
+//        return array[index];
+//    }
     Matrix resize(int height, int lenght){
         if(n*m!=height*lenght){
             std::cerr<<"You cant resize "<<n<<" "<<m<<" to "<<height<<"  "<<lenght<<"\n";
@@ -293,24 +323,20 @@ public:
     
     
     //НЕ РАБОТАЕТ
-    T det() {//Определитель
-        if(n!=m){
-            std::string errorStr="Matrix shapes are not equal, Det  is impossible\n";
-            std::cerr<<errorStr;
-            throw pair("Matrix shapes are not equal, Det  is impossible\n method will throw pair<Exeption, *this matrix>\n",*this);
-            
-        }
-        Matrix<T> tmp(n,m,array);
+    T det() {
+
         long int n = array.size();
         double res = 1;
+        std::vector<std::vector<T>> tmp = array;
 
 
-           for(int col = 0; col < n; ++col) {
-              bool found = false;
-              for(int row = col; row < n; ++row) {
-                 if(tmp[row][col]) {
-                    if ( row != col )
-                    {
+
+        for(int col = 0; col < n; ++col) {
+            bool found = false;
+            for(int row = col; row < n; ++row) {
+                if(tmp[row][col]) {
+                    if ( row != col ){
+                        res*=-1;
                         tmp[row].swap(tmp[col]);
                     }
                     found = true;
@@ -326,12 +352,10 @@ public:
                     for (int j = col; j < n; ++j) {
                         tmp[row][j] -= del * tmp[col][j];
                     }
-                    if (tmp[row][col] == 0)
-                    {
+                    if (tmp[row][col] == 0){
                        break;
                     }
-                    else
-                    {
+                    else{
                         res*=-1;
                         tmp[row].swap(tmp[col]);
                     }
@@ -343,13 +367,33 @@ public:
            }
            return res;
         }
+        
 
+    
+    
+    
+    
     Matrix& transp (){
         std::vector < std::vector <double> >tmpvec (m, std::vector <double> (n) );
         for(int i=0;i<n;i++){
             for(int j=0;j<m;j++){
                 tmpvec[j][i]=array[i][j];
             }
+        }
+        Matrix tmp (m, n, tmpvec);
+        *this=tmp;
+
+        return *this;
+    }
+    Matrix& addColumn (Matrix<T> col){
+        std::vector < std::vector <double> >tmpvec (m+1, std::vector <double> (n) );
+        for(int i=0;i<n;i++){
+            for(int j=0;j<m;j++){
+                tmpvec[i][j]=array[i][j];
+            }
+        }
+        for(int i=0;i<n;i++){
+            tmpvec[n][i]=col[0][i];
         }
         Matrix tmp (m, n, tmpvec);
         *this=tmp;
@@ -393,15 +437,15 @@ public:
             for (int i = 0; i < n; ++ i){
                 c.push_back(0);
             }
-            Matrix col(c,n,VERTICAL);
+            Matrix col(n,c,VERTICAL);
             std::string errorStr="Index of col you want to get out of range";
             throw pair(errorStr+"method getColumn() will throw pair<exeption, zero Column>", col);
         }
         
         for (int i = 0; i < n; ++ i){
-            c.push_back(this->a[i][index]);
+            c.push_back(this->array[i][index]);
         }
-        Matrix col(c,n,VERTICAL);
+        Matrix col(n, c,VERTICAL);
         return col;
     }
     
@@ -623,63 +667,7 @@ public:
 //
 //        return result;
 //    }
-    Matrix<double>Inverse(){
-        double temp;
-        if(n!=m){
-            std::string errorStr="Not squared matrix, can't find its inverse";
-            std::cerr<<errorStr;
-            throw pair(errorStr+"method Inverse() will throw pair<exeption, this matrix>", *this);
-        }
-        Matrix<double> result(n,n);
-        std::vector<std::vector<double>>copy(n, std::vector <double> (m));
-        for(int i=0;i<n;i++){
-            for(int j=0;j<n;j++){
-                copy[i][j]=(array[i][j]);
-            }
-        }
-        Matrix<double> tmp(n,n, copy);
-
-        for (int i = 0; i < n; i++){
-                for (int j = 0; j <n; j++){
-                    result[i][j] = 0.0;
-                    if (i == j)
-                        result[i][j] = 1.0;
-                }
-        }
-
-        for (int k = 0; k < n; k++){
-            temp = tmp[k][k];
-            for (int j = 0; j < n; j++){
-                tmp[k][j] /= temp;
-                result[k][j] /= temp;
-            }
-            for (int i = k + 1; i < n; i++){
-                temp = tmp[i][k];
-                for (int j = 0; j < n; j++){
-                    tmp[i][j] -= tmp[k][j] * temp;
-                    result[i][j] -= result[k][j] * temp;
-                }
-            }
-        }
-
-        for (int k = n - 1; k > 0; k--){
-            for (int i = k - 1; i >= 0; i--){
-                temp = tmp[i][k];
-                for (int j = 0; j < n; j++){
-                    tmp[i][j] -= tmp[k][j] * temp;
-                    result[i][j] -= result[k][j] * temp;
-                }
-            }
-        }
-
-        for (int i = 0; i < n; i++){
-            for (int j = 0; j <n; j++){
-                tmp[i][j] = result[i][j];
-            }
-        }
-        
-        return result;
-    }
+    
     double AngleBetweenVectors( Matrix<T> vector2){
         if(n!=1&&m!=1){
             
@@ -835,6 +823,7 @@ public:
             Matrix<T>::array[i][i]=1;
         }
     }
+    
 //    void write_bin(std::ofstream& out) {
 //        if(!out.is_open()) {
 //            std::string error_str="File not found\n";
@@ -859,6 +848,7 @@ public:
 //
     
 };
+
 template <typename T>
 class DiagonalMatrix:public Matrix<T>{
 public:
@@ -971,7 +961,7 @@ std::istream& operator>>(std::istream& in, Matrix<T>& matrix){
 }
 
 template <typename T>
-Matrix<T> operator + (Matrix<T>& matrix1, Matrix<T>& matrix2){
+Matrix<T> operator + (Matrix<T> matrix1, Matrix<T> matrix2){
     Matrix<T> resultMatrix = Matrix<T> (matrix1.GetHeight(), matrix1.GetLenght());
     if( matrix1.GetHeight() != matrix2.GetHeight() || matrix1.GetLenght() != matrix2.GetLenght()){
         std::string errorStr="Matrix shapes are not equal, operator + is impossible\n";
@@ -988,8 +978,8 @@ Matrix<T> operator + (Matrix<T>& matrix1, Matrix<T>& matrix2){
     return resultMatrix;
 }
 template <typename T>
-Matrix<T> operator - (Matrix<T>& matrix1, Matrix<T>& matrix2){
-    Matrix<T> resultMatrix = Matrix<T> (matrix1.GetHeight(), matrix1.GetLenght);
+Matrix<T> operator - (Matrix<T> matrix1, Matrix<T> matrix2){
+    Matrix<T> resultMatrix = Matrix<T> (matrix1.GetHeight(), matrix1.GetLenght());
     if(matrix1.GetHeight() != matrix2.GetHeight() && matrix1.GetLenght() != matrix2.GetLenght()){
         std::string errorStr="Matrix shapes are not equal, operator - is impossible\n";
         std::cerr<<errorStr;
@@ -1002,7 +992,7 @@ Matrix<T> operator - (Matrix<T>& matrix1, Matrix<T>& matrix2){
     return resultMatrix;
 }
 template <typename T>
-Matrix<T> operator * (Matrix<T>& matrix1, Matrix<T>& matrix2){
+Matrix<T> operator * (Matrix<T> matrix1, Matrix<T> matrix2){
     Matrix<T> resultMatrix = Matrix<T> (matrix1.GetHeight(), matrix2.GetLenght());
     if(matrix1.GetLenght() != matrix2.GetHeight() && matrix1.GetHeight() != matrix2.GetLenght()){
         std::string errorStr="Matrix shapes are not equal, operator * is impossible\n";
@@ -1015,11 +1005,19 @@ Matrix<T> operator * (Matrix<T>& matrix1, Matrix<T>& matrix2){
         for (int j = 0; j < matrix2.GetLenght(); ++ j)
             for (int k = 0; k < matrix1.GetLenght(); ++ k)
                 resultMatrix[i][j] += matrix1[i][k] * matrix2[k][j];
+    
+//    for (int i = 0; i < matrix1.GetHeight(); ++ i){
+//        for (int j = 0; j < matrix2.GetLenght(); ++ j){
+//            if(abs(resultMatrix[i][j])<0.000000000001){
+//                resultMatrix[i][j]=0;
+//            }
+//        }
+//    }
     return resultMatrix;
 }
 
 template <typename T>
-Matrix<T> operator * (Matrix<T>& matrix1, T number){
+Matrix<T> operator * (Matrix<T> matrix1, double number){
     
     Matrix<T> resultMatrix = Matrix<T> (matrix1.GetHeight(), matrix1.GetLenght());
     for (int i = 0; i < matrix1.GetHeight(); ++ i)
@@ -1028,6 +1026,256 @@ Matrix<T> operator * (Matrix<T>& matrix1, T number){
     return resultMatrix;
 }
 
+
+template <typename T>
+Matrix<T> operator / (Matrix<T> matrix1, double number){
+    
+    Matrix<T> resultMatrix = Matrix<T> (matrix1.GetHeight(), matrix1.GetLenght());
+    for (int i = 0; i < matrix1.GetHeight(); ++ i)
+        for (int j = 0; j < matrix1.GetLenght(); ++ j)
+            resultMatrix[i][j] = matrix1[i][j] / number;
+    return resultMatrix;
+}
+
+
+template <typename T>
+class PCA:public Matrix<T>{
+private:
+private:
+    Matrix<T> _matrix, P_, T_, E_;
+    bool _nipled=false;
+public:
+    PCA(int n,int m):Matrix<T>(n,m){}
+    PCA(int n,int m, std::vector<T> v):Matrix<T>(n,m, v){}
+    void centring (){
+        double sum=0;
+        double avg=0;
+        for(int i=0;i<Matrix<T>::m;i++){
+            for(int j=0;j<Matrix<T>::n;j++){
+                sum+=Matrix<T>::array[j][i];
+            }
+            avg=sum/Matrix<T>::n;
+            for(int j=0;j<Matrix<T>::n;j++){
+                Matrix<T>::array[j][i]-=avg;
+            }
+            sum=0;
+            
+        }
+        
+    }
+    Matrix<T> GetP(){
+        return P_;
+    }
+    Matrix<T> GetT(){
+        return T_;
+    }
+    Matrix<T> GetE(){
+        return E_;
+    }
+    void scaling (){
+       
+        if (Matrix<T>::n < 2) throw std::invalid_argument("Cannot scale matrix with <2 rows!");
+
+        for (size_t j = 0; j < Matrix<T>::m; ++j) {
+            double mean = 0;
+            for (size_t i = 0; i < Matrix<T>::n; ++i) {
+                mean += Matrix<T>::array[i][j];
+            }
+
+            mean /= static_cast<double>(Matrix<T>::n);
+
+            double deviation = 0;
+            for (size_t i = 0; i < Matrix<T>::n; ++i) {
+                deviation += std::pow((Matrix<T>::array[i][j] - mean), 2);
+                Matrix<T>::array[i][j] -= mean;
+            }
+
+            deviation /= static_cast<double>(Matrix<T>::n - 1);
+            deviation = std::pow(deviation, 0.5);
+
+            for (size_t i = 0; i < Matrix<T>::n; ++i) {
+                Matrix<T>::array[i][j] /= deviation;
+            }
+        }
+    }
+    void nipalsALG (){
+           
+        int n=Matrix<T>::n;
+        int m=Matrix<T>::m;
+        Matrix<T> t(n, 1), p, t_old;
+        Matrix<T> matrix(n,m,Matrix<T>::array);
+        std::vector<Matrix<double>> TT, P;
+        int PC=std::min(n,m)>4?4:std::min(n,m);
+     
+        for (int k = 0; k < PC; ++k) {
+            for (int i = 0; i < n; ++i) {
+                t[i][0] = matrix[i][k];
+            }
+            
+            Matrix<T> tTransp;
+            Matrix<T> tTranspXmatrix;
+
+            do {
+                tTransp=transp(t);
+                tTranspXmatrix=tTransp*matrix;
+                p =transp(tTranspXmatrix);
+                double abs = (transp(t)*t)[0][0];
+
+                for (int i = 0; i < m; ++i) {
+                    p[i][0] /= abs;
+                }
+
+                abs = p.EuclideanNorm();
+
+                for (int i = 0; i < m; ++i) {
+                    p[i][0] /= abs;
+                }
+
+                t_old = t;
+
+                t = matrix*p;
+                abs = (transp(p)*p)[0][0];
+
+                for (int i = 0; i < n; ++i) {
+                    t[i][0] /= abs;
+                }
+
+
+            } while ((t_old - t).EuclideanNorm() > 0.00000001);
+
+            TT.push_back(t);
+            P.push_back(p);
+            matrix = matrix - t*transp(p);
+                
+        }
+        std::vector<Matrix<T>> result;
+       
+        
+        Matrix<double>  result_T(n, TT.size()),
+                        result_P((P[0].GetHeight()),P.size()),
+                        result_E(n, m);
+        
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < TT.size(); ++j) {
+                result_T[i][j] = TT[j][i][0];
+                if (i < P[0].GetHeight()) {
+                    result_P[i][j] = P[j][i][0];
+                }
+
+            }
+        }
+        T_=result_T;
+        P_=result_P;
+        E_=matrix;
+        _nipled=true;
+        
+        
+    }
+    std::vector<T> scope() {
+        if (!_nipled) throw std::invalid_argument("Apply NIPALS algorithm firstly.");
+        Matrix<T> TT=T_;
+        int n=TT.GetHeight();
+        int m=TT.GetLenght();
+       
+
+        std::vector<T> result;
+
+        for (int i = 0; i < n; ++i) {
+            Matrix<T> t(1,m);
+            for (int j = 0; j < m; ++j) {
+                t[0][j] = TT[i][j];
+            }
+
+            Matrix<double> h = (transp(TT))*(TT);
+            h = inverse(h);
+            
+            h = t*(h);
+            
+            h = h*(transp(t));
+
+            result.push_back(h[0][0]);
+        }
+
+        return result;
+    }
+    std::vector<T> deviation() {
+        if (!_nipled) throw std::invalid_argument("Apply NIPALS algorithm firstly.");
+        
+        int n=E_.GetHeight();
+        int m=E_.GetLenght();
+        std::vector<T> result;
+
+        for (int i = 0; i < n; ++i) {
+            double vi = 0;
+            for (int j = 0; j < m; ++j) {
+                vi += E_[i][j] * E_[i][j];
+            }
+
+            result.push_back(vi);
+        }
+
+        return result;
+    }
+
+    std::vector<T> dispersion() {
+        if (!_nipled) throw std::invalid_argument("Apply NIPALS algorithm firstly.");
+        int m = E_.GetLenght();
+        
+        std::vector<T> dev = deviation();
+
+        for(double& d : dev) {
+            d /= static_cast<double>(m);
+        }
+
+        return dev;
+    }
+
+    double dispersion_mean() {
+        if (!_nipled) throw std::invalid_argument("Apply NIPALS algorithm firstly.");
+        int n = E_.GetHeight();
+        std::vector<double> dev = deviation();
+
+        double result = 0;
+
+        for (double d : dev) result += d;
+
+        return result / static_cast<double>(n);
+    }
+
+    double dispersion_general() {
+        if (!_nipled) throw std::invalid_argument("Apply NIPALS algorithm firstly.");
+        size_t n = E_.GetHeight();
+        std::vector<double> disp = dispersion();
+
+        double result = 0;
+
+        for (double d : disp) result += d;
+
+        return result / static_cast<double>(n);
+    }
+
+    double dispersion_explained() {
+        if (!_nipled) throw std::invalid_argument("Apply NIPALS algorithm firstly.");
+        
+        
+        int n=this->GetHeight();
+        int m=this->GetLenght();
+        int e_rows = E_.GetHeight();
+
+        double result = 0;
+
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < m; ++j) {
+                result += std::pow(this->array[i][j], 2);
+            }
+        }
+        double dispersion_mea=dispersion_mean();
+        result = 1 - (static_cast<double>(e_rows) * dispersion_mean()) / result;
+
+        return result;
+    }
+
+};
 
 
 #endif 
