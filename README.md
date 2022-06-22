@@ -16,35 +16,63 @@
 Ниже будут перечислены функции и методы данной библиотеки:
  
  AdamarsMultiplication - произведение Адамара
+ 
  det() - определитель
+ 
  transp() - транспонирование
+ 
  addColumn() - добавление столбца
+ 
  getRow()- получить строку
+ 
  getColumn() получить столбец
+ 
  swapRows (int index1, int index2) - поменять местами строки 
+ 
  swapColumns (int index1, int index2) - поменять местами столбцы
+ 
  concateMatrix (Matrix & matrix)- соеденить матрицу к которой применяется метод с матрицой указанной в аргументе
+ 
  eraseColumns (int index1, int index2) - удалить столбцы с index1 по index2
+ 
  eraseRows (int index1, int index2) - удалить строки с index1 по index2
+ 
  rank() - получить ранг матрицы
+ 
  trace()- след матрицы
+ 
  ScalarMultiplication( Matrix<T> matrix)- скалярное произведение
+ 
  EuclideanNorm()- Евклидова норма
+ 
  MaxNorm()- максимальная норма
+ 
  AngleBetweenVectors( Matrix<T> matrix)- угол между векторам
+ 
  
   
   
 
   Так же в библиотеке присутствует класс PCA - дочерний класс Matrix.
+ 
  Этот класс нужен для подсчета различных параметров матрицы методом гланых компонент.
+ 
  Данный класс содержит такие методы как:
+ 
   scaling () - шкалирование
+ 
   centring () - центрирование
+ 
   nipalsALG (int PC=2) - алгоритм Нипалса, где PC - число главных компонент
+ 
   scope() - размах
+ 
   deviation() - отклонение
+ 
   dispersion() - дисперсия
+ 
   dispersion_mean()- дисперсия средняя
+ 
   dispersion_general() - дисперсия главня
+ 
   dispersion_explained() - дисперсия объясненная
